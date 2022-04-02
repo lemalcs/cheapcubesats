@@ -1,11 +1,17 @@
 #![allow(unused_variables)]
 
-#[derive(Debug)]
+use std::{rc::Rc, cell::RefCell};
+
+// `Copy` trait creates an exact copy of a value
+// `Clone` trait creates light copy of a value and may differ 
+// from original value.
+// Copy implies Clone.
+#[derive(Debug, Clone, Copy)]
 struct CubeSat{
     id: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum StatusMessage{
     Ok,
 }
@@ -43,7 +49,10 @@ impl MailBox{
     }
 }
 
-struct GroundStation;
+#[derive(Debug)]
+struct GroundStation{
+    radio_freq: f64, // Mhz
+}
 
 impl GroundStation{
     // Read only access to `self`
@@ -80,7 +89,9 @@ fn main() {
 
     let mut mailbox= MailBox{messages: vec![]};
 
-    let base = GroundStation{};
+    let base = GroundStation{
+        radio_freq : 84.32
+    };
 
     let sat_ids= fetch_sat_ids();
 
@@ -95,5 +106,41 @@ fn main() {
         let sat = base.connect(sat_id);
         let msg = sat.recv(&mut mailbox);
         println!("{:?} : {:?}", sat,msg);
+    }
+
+    let sat_a = CubeSat{ id: 0 };
+    let a_status = check_status(sat_a.clone());
+    println!("a: {:?}",a_status.clone());
+    
+    // Copy trait create a new value of variable `sat_a`
+    let a_status = check_status(sat_a);
+    println!("a: {:?}",a_status);
+
+    create_wrapped_ground_stations();
+}
+
+fn create_wrapped_ground_stations(){
+
+    // `Rc` type provides shared ownership
+    // This variable dows not allow mutation
+    let base = Rc::new(GroundStation
+        {
+            radio_freq : 84.33
+        });
+    println!("{:?}",base);
+
+    // `RefCell` type allows mutation
+    let base2:Rc<RefCell<GroundStation>> = Rc::new(RefCell::new(GroundStation
+        {
+            radio_freq : 84.34
+        }));
+    println!("{:?}",base2);
+
+    // Optional new scope added
+    {
+        // base2 is  mutably borrowed
+        let mut base_3=base2.borrow_mut();
+        base_3.radio_freq=93.7;
+        println!("{:?}",base_3);
     }
 }
